@@ -1,0 +1,77 @@
+@startuml 001SignUpSequence_Client
+title サインアップ(Client)
+
+actor "クライアント" order 10
+participant "ブラウザ" order 20
+participant "function" order 40
+participant "クライアント情報table" order 50
+
+' //////////////////////frontend//////////////////////////////
+"クライアント" -> "ブラウザ": this.props.history.push('/clientstart')
+' "クライアント" -> "ブラウザ": アクセス\nhttps://pickupvoiceapp.azurewebsites.net/clientstart
+activate "クライアント"
+activate "ブラウザ"
+"クライアント" <<-- "ブラウザ": クライアント用スタート画面表示
+"クライアント" -> ”ブラウザ”: サインアップ情報入力\nサインアップボタン押下onClick
+"ブラウザ" -> "ブラウザ": signUpBtnClick()
+activate "ブラウザ"
+"ブラウザ" -> "ブラウザ": checkSignUpInfo()
+alt 失敗:入力情報に不備
+    "クライアント" <<-- "ブラウザ": エラー原因表示
+else 成功:入力情報に不備がない
+    "ブラウザ" -> "ブラウザ": createID()
+note right of "ブラウザ": UUID(v4)を用いる\nRRRRRRRR-RRRR-4RRR-rRRR-RRRRRRRRRRRR
+    "ブラウザ" -> "ブラウザ": createHush()
+    note right of "ブラウザ": ハッシュタイプはSHA-256
+    "ブラウザ" -> "ブラウザ": createJSON()
+    "ブラウザ" -> "function": reqSignUpClient()
+    deactivate "ブラウザ"
+    activate "function"
+' ///////////////////////////////////////////////////////////
+    ' "function" -> "function": recieveData() / JSONデータ
+    "function" -> "クライアント情報table": connectTable()
+    activate "クライアント情報table"
+    ' note right of "クライアント情報table": 接続できたか否かを返す
+    ' "function" <<-- "クライアント情報table": response
+    ' deactivate "クライアント情報table"
+    ' alt 失敗:接続失敗
+    '     ブラウザ <-- function :sendResponce(error)
+    '     "クライアント" <<-- "ブラウザ": エラー原因表示
+    ' else 成功:接続完了
+        "function" -> "クライアント情報table": mailCheck()
+        ' activate "クライアント情報table"
+        note right of "クライアント情報table": 検索結果を返す
+        "function" <<-- "クライアント情報table": response
+        deactivate "クライアント情報table"
+            alt 失敗:既に登録されているメールアドレス
+                "function" -> "クライアント情報table": disconnectTable()
+                activate "クライアント情報table"
+                deactivate "クライアント情報table"
+                ブラウザ <-- function :response:400
+                "クライアント" <<-- "ブラウザ": エラー原因表示
+            else 成功
+                "function" -> "クライアント情報table": registClientData()
+                activate "クライアント情報table"
+                ' note right of "クライアント情報table": 登録できたか否かを返す
+                ' "function" <<-- "クライアント情報table": response
+                "function" -> "クライアント情報table": disconnectTable()
+                ' note right of "クライアント情報table": 切断できたか否かを返す
+                ' "function" <<-- "クライアント情報table": response
+                deactivate "クライアント情報table"
+                    ' alt 失敗:登録失敗
+                    '     ブラウザ <-- function :sendResponce(error)
+                    '     "クライアント" <<-- "ブラウザ": エラー原因表示
+                    ' else 成功:登録完了
+                        function -> ブラウザ : response:200
+                        deactivate "function"
+                        "ブラウザ" -> "ブラウザ": this.props.history.push('/clientstart/clientsignin')
+                        activate "ブラウザ"
+                        "クライアント" <<-- "ブラウザ": サインイン画面表示
+                        deactivate "ブラウザ"
+                        deactivate "ブラウザ"
+                        deactivate "クライアント"
+                    ' end
+            end
+    ' end
+end
+@enduml
